@@ -41,6 +41,13 @@ Everything else requires a test first. When in doubt, write the test.
 
 Do not use `unittest.mock`, `pytest-mock`, or any mocking library without approval.
 
+## Initial Setup
+
+```bash
+# Install dev dependencies (required before running tests/linting)
+uv sync --extra dev
+```
+
 ## Development Commands
 
 ```bash
