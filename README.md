@@ -68,5 +68,4 @@ uv run pytest --cov=tpy_lipi
 ```
 
 ## License
-
-MIT
+GPL-3.0 License © 2026 Timo R. Jensen
