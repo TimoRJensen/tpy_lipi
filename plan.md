@@ -158,10 +158,14 @@ tpy_lipi/
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
+│   ├── test_integration.py               # ✓
+│   ├── adapters/
+│   │   ├── __init__.py
+│   │   └── test_markdown_storage.py      # ✓
 │   └── core/
 │       ├── __init__.py
-│       ├── test_topic_service.py
-│       ├── test_journal_service.py
+│       ├── test_topic_service.py         # ✓
+│       ├── test_journal_service.py       # ✓
 │       └── test_models.py                # ✓
 ├── vault/                                # Obsidian vault (gitignored)
 │   ├── topics/                           # Topic markdown files
@@ -244,6 +248,20 @@ Sync:
 Dev:
 - `pytest>=8.0` - Testing
 - `ruff>=0.8` - Linting and formatting
+
+### Setup
+
+```bash
+# Install dev dependencies (required before running tests/linting)
+uv sync --extra dev
+
+# Run tests
+uv run pytest
+
+# Lint and format
+uv run ruff check .
+uv run ruff format .
+```
 
 ---
 
