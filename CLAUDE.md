@@ -22,7 +22,7 @@ These do NOT require tests first:
 - `__init__.py` files
 - Import statements
 - Pydantic model field definitions (but test validation logic)
-- Abstract base class method signatures (ports)
+- Protocol method signatures (ports)
 - Configuration dataclasses with no logic
 
 Everything else requires a test first. When in doubt, write the test.
@@ -31,7 +31,7 @@ Everything else requires a test first. When in doubt, write the test.
 
 **Mocking is discouraged.** The hexagonal architecture exists specifically to avoid mocks:
 
-- Use real implementations (e.g., JsonFileStorage with temp directories)
+- Use real implementations (e.g., `MarkdownStorage` with `tmp_path` fixture)
 - Use simple in-memory implementations for ports when needed
 - Prefer integration tests over unit tests with mocks
 
@@ -68,38 +68,121 @@ uv run python main.py
 Hexagonal (Ports & Adapters) with three layers:
 
 ### Core Layer (`src/tpy_lipi/core/`)
-- **Models** (`models.py`): Pydantic domain objects - `Topic`, `JournalEntry`, `DailyNote`
-- **Services** (`services/`): Business logic - `TopicService`, `JournalService`, `ExportService`
-- **Ports** (`ports/`): Abstract interfaces - `StoragePort`, `SpeechToTextPort`, etc.
+
+**Models** (`models.py`): Pydantic domain objects
+- `Topic` - name, aliases, last_used, created_at; has `to_markdown()`/`from_markdown()`
+- `JournalEntry` - id, topic_name, content, recorded_at
+- `DailyNote` - date, topic_mentions, entries; has `to_markdown()`/`from_markdown()`
+
+**Services** (`services/`): Business logic
+- `TopicService` - CRUD, fuzzy duplicate detection via rapidfuzz
+- `JournalService` - add mentions, add entries, get today's note
+
+**Ports** (`ports/`): Protocol-based interfaces (structural typing, not ABC)
+- `StoragePort` - topic and daily note persistence
 
 ### Adapters Layer (`src/tpy_lipi/adapters/`)
-Concrete implementations:
-- `JsonFileStorage` - File-based persistence
-- `WhisperSpeechToText` - Offline STT via faster-whisper
-- Notification adapters (Android, Desktop)
 
-### UI Layer (`src/tpy_lipi/ui/`)
-- `flet_app/` - Flet framework (Android/Desktop)
-- `tui/` - Terminal UI (planned)
+- `MarkdownStorage` - Obsidian-compatible markdown persistence
+  - Topics: `{vault}/topics/{name}.md` with `lipi/topic/{sanitized_name}` tag (nested)
+  - Daily notes: `{vault}/{YYYY-MM-DD}.md` with `lipi/daily` tag (nested)
+
+### App Wiring (`src/tpy_lipi/app.py`)
+
+```python
+class App:
+    def __init__(self, vault_path: Path):
+        self.storage = MarkdownStorage(vault_path)
+        self.topics = TopicService(self.storage)
+        self.journal = JournalService(self.storage, self.topics)
+```
 
 ### Dependency Flow
 ```
-UI → Services → Ports (interfaces)
+UI → Services → Ports (Protocol interfaces)
                    ↑
-               Adapters
+               Adapters (MarkdownStorage)
 ```
 
-Wiring happens in `main.py` via manual dependency injection.
+## Storage Format
+
+All data is Obsidian-compatible markdown (no JSON). Uses nested Obsidian tags under `lipi/` prefix.
+
+### Tag Naming
+
+Topics use dynamic nested tags: `lipi/topic/{sanitized_name}`
+
+**Sanitization rules** (see `Topic._tag_name()`):
+1. Lowercase the name
+2. Replace spaces with underscores
+3. Remove all characters except `a-z`, `0-9`, `_`
+
+Examples:
+- "Project Alpha" → `lipi/topic/project_alpha`
+- "Team Meeting" → `lipi/topic/team_meeting`
+- "Q&A Session" → `lipi/topic/qa_session`
+
+Daily notes use static tag: `lipi/daily`
+
+**Topic file** (`topics/Project Alpha.md`):
+```markdown
+---
+tags:
+  - lipi/topic/project_alpha
+aliases:
+  - Alpha
+last_used: 2026-01-28T14:30:00
+created_at: 2026-01-28T10:00:00
+---
+
+# Project Alpha
+```
+
+**Daily note** (`2026-01-28.md`):
+```markdown
+---
+tags:
+  - lipi/daily
+---
+
+# 2026-01-28
+
+## Topics of the Day
+
+- [[Project Alpha]]
+- [[Team Meeting]]
+
+## Notes
+
+### [[Project Alpha]]
+
+<!-- entry:uuid-here -->
+Made progress on the prototype.
+
+<!-- entry:uuid-here -->
+Fixed a critical bug.
+```
 
 ## Key Technical Decisions
 
 - **Python 3.13+** required
-- **Pydantic** for data validation
+- **Pydantic** for data validation and serialization
+- **Protocol** for ports (structural typing, not ABC)
 - **rapidfuzz** for fuzzy duplicate detection
-- **faster-whisper** for offline speech-to-text
-- **Manual DI** - no framework needed
+- **Direct vault writing** - no separate export step
+- **Manual DI** via `App` class
 
-## Data Directories (gitignored)
+## Current Implementation Status
 
-- `data/` - User data (topics, journal entries, exports)
-- `models/` - Whisper speech recognition models
+**Implemented (65 tests passing):**
+- Domain models with markdown serialization
+- MarkdownStorage adapter
+- TopicService with fuzzy duplicate detection
+- JournalService for daily notes
+- App class for DI wiring
+
+**Not yet implemented:**
+- Flet UI
+- Whisper STT integration
+- Notifications
+- Git sync

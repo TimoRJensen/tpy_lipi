@@ -78,8 +78,7 @@ An app that:
 │  Services                                                   │
 │  • TopicService (CRUD, duplicate checking)                  │
 │  • JournalService (manage daily entries)                    │
-│  • ExportService (Markdown generation)                      │
-│  • ReminderService (scheduling logic)                       │
+│  • ReminderService (scheduling logic) [not yet implemented] │
 ├─────────────────────────────────────────────────────────────┤
 │  Domain Models                                              │
 │  • Topic(name, parent?, last_used, aliases)                 │
@@ -98,9 +97,9 @@ An app that:
 ┌─────────────────────────────────────────────────────────────┐
 │                 Adapters (Implementations)                  │
 ├─────────────────────────────────────────────────────────────┤
+│  • MarkdownStorage(StoragePort) ✓ IMPLEMENTED               │
 │  • WhisperSpeechToText(SpeechToTextPort)                    │
 │  • AndroidTTS(TextToSpeechPort)                             │
-│  • JsonFileStorage(StoragePort)                             │
 │  • AndroidNotification(NotificationPort)                    │
 │  • DesktopNotification(NotificationPort)                    │
 │  • GitPythonSync(GitSyncPort)                               │
@@ -121,9 +120,8 @@ tpy_lipi/
 │       │   ├── models.py                 # Topic, JournalEntry, DailyNote (Pydantic)
 │       │   ├── services/
 │       │   │   ├── __init__.py
-│       │   │   ├── topic_service.py      # CRUD, duplicate checking
-│       │   │   ├── journal_service.py    # Manage daily entries
-│       │   │   └── export_service.py     # Markdown generation
+│       │   │   ├── topic_service.py      # CRUD, duplicate checking ✓
+│       │   │   └── journal_service.py    # Manage daily entries ✓
 │       │   └── ports/
 │       │       ├── __init__.py
 │       │       ├── speech.py             # SpeechToTextPort, TextToSpeechPort
@@ -132,9 +130,9 @@ tpy_lipi/
 │       │       └── sync.py               # GitSyncPort
 │       ├── adapters/
 │       │   ├── __init__.py
+│       │   ├── markdown_storage.py       # Obsidian vault persistence ✓
 │       │   ├── whisper_stt.py            # Offline Speech-to-Text (faster-whisper)
 │       │   ├── android_tts.py            # Text-to-Speech
-│       │   ├── json_storage.py           # Local JSON persistence
 │       │   ├── git_sync.py               # GitPython integration
 │       │   └── notifications/
 │       │       ├── __init__.py
@@ -164,11 +162,10 @@ tpy_lipi/
 │       ├── __init__.py
 │       ├── test_topic_service.py
 │       ├── test_journal_service.py
-│       └── test_export_service.py
-├── data/                                 # Local data (gitignored)
-│   ├── topics.json
-│   ├── journal/
-│   └── exports/
+│       └── test_models.py                # ✓
+├── vault/                                # Obsidian vault (gitignored)
+│   ├── topics/                           # Topic markdown files
+│   └── *.md                              # Daily notes
 ├── models/                               # Whisper models (gitignored)
 ├── main.py                               # Entry point, DI wiring
 ├── pyproject.toml
@@ -195,23 +192,23 @@ tpy_lipi/
 
 ### Implementation Order
 
-1. **Storage first**: Implement JsonFileStorage adapter - enables TDD for all services
-2. **Core models**: Pydantic models for Topic, JournalEntry, DailyNote
-3. **TopicService**: CRUD with fuzzy duplicate detection
-4. **JournalService**: Manage daily entries
-5. **ExportService**: Markdown generation with `[[wiki links]]`
-6. **Minimal Flet UI**: Topic list, add topic, basic navigation
-7. **Whisper integration**: Start with file-based transcription, then streaming
-8. **Evening flow**: Complete dictation and export workflow
+1. ~~**Storage first**: Implement MarkdownStorage adapter~~ ✓ DONE
+2. ~~**Core models**: Pydantic models for Topic, JournalEntry, DailyNote~~ ✓ DONE
+3. ~~**TopicService**: CRUD with fuzzy duplicate detection~~ ✓ DONE
+4. ~~**JournalService**: Manage daily entries~~ ✓ DONE
+5. **Minimal Flet UI**: Topic list, add topic, basic navigation
+6. **Whisper integration**: Start with file-based transcription, then streaming
+7. **Evening flow**: Complete dictation and export workflow
 
 ### Included in MVP
 
 - [ ] Flet app with large, car-friendly buttons
-- [ ] Topic list (CRUD, flat, stored in JSON)
+- [x] Topic list (CRUD, flat, stored as Obsidian markdown)
+- [x] Fuzzy duplicate detection with rapidfuzz
 - [ ] Speech-to-text with Whisper (German, offline)
-- [ ] Markdown export with `[[Links]]` and date
+- [x] Direct Obsidian vault writing with `[[wiki links]]` and nested tags
 - [ ] One configurable evening reminder
-- [ ] Core/UI separation (Ports & Adapters)
+- [x] Core/UI separation (Ports & Adapters)
 
 ### Phase 2
 
@@ -250,14 +247,17 @@ Dev:
 
 ---
 
-## Appendix: Obsidian Daily Note Format
+## Appendix: Obsidian File Formats
+
+### Daily Note (`2026-01-28.md`)
 
 ```markdown
-# 2026-01-28
 ---
 tags:
-- daily
+  - lipi/daily
 ---
+
+# 2026-01-28
 
 ## Topics of the Day
 
@@ -281,7 +281,25 @@ Discussion about next milestones. Deadline for v1.0 is end of February.
 Spontaneous idea during the drive: What if we could also embed
 audio notes directly?
 
+```
+
+### Topic File (`topics/Project Alpha.md`)
+
+```markdown
+---
+tags:
+  - lipi/topic/project_alpha
+aliases:
+  - Alpha
+last_used: 2026-01-28T14:30:00
+created_at: 2026-01-28T10:00:00
 ---
 
-*Created with [tpy_lipi](https://github.com/TimoRJensen/tpy_lipi)*
+# Project Alpha
 ```
+
+### Tag Naming Convention
+
+All tags use nested format under `lipi/` prefix:
+- Topics: `lipi/topic/{sanitized_name}` (lowercase, spaces → underscores, alphanumeric only)
+- Daily notes: `lipi/daily`
