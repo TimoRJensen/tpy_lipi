@@ -205,3 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# tpy_lipi project-specific
+data/
+models/
+.claude/
