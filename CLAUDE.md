@@ -187,9 +187,9 @@ Fixed a critical bug.
 - TopicService with fuzzy duplicate detection
 - JournalService for daily notes
 - App class for DI wiring
+- Flet UI with car-friendly components (HomeScreen, TopicSelectScreen, DictationScreen)
 
 **Not yet implemented:**
-- Flet UI
-- Whisper STT integration
+- Whisper STT integration (voice input button exists but disabled)
 - Notifications
 - Git sync

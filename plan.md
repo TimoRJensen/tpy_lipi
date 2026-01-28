@@ -200,13 +200,13 @@ tpy_lipi/
 2. ~~**Core models**: Pydantic models for Topic, JournalEntry, DailyNote~~ ✓ DONE
 3. ~~**TopicService**: CRUD with fuzzy duplicate detection~~ ✓ DONE
 4. ~~**JournalService**: Manage daily entries~~ ✓ DONE
-5. **Minimal Flet UI**: Topic list, add topic, basic navigation
+5. ~~**Minimal Flet UI**: Topic list, add topic, basic navigation~~ ✓ DONE
 6. **Whisper integration**: Start with file-based transcription, then streaming
 7. **Evening flow**: Complete dictation and export workflow
 
 ### Included in MVP
 
-- [ ] Flet app with large, car-friendly buttons
+- [x] Flet app with large, car-friendly buttons
 - [x] Topic list (CRUD, flat, stored as Obsidian markdown)
 - [x] Fuzzy duplicate detection with rapidfuzz
 - [ ] Speech-to-text with Whisper (German, offline)
